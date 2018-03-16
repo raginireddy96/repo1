@@ -1,0 +1,61 @@
+---
+- hosts: jenkins
+  become_method: sudo
+  remote_user: ec2-user
+  become: yes
+  become_user: root
+  vars_files:
+    - vars/plugins.yml
+  vars:
+    - jenkins_ip: 54.202.255.162
+    - maven_ip: 34.217.146.42
+    - artifact_public_dns: ec2-34-217-194-165.us-west-2.compute.amazonaws.com
+    - tomcat_public_dns: ec2-34-217-194-165.us-west-2.compute.amazonaws.com
+  roles:
+    - role: geerlingguy.java
+      when: "ansible_os_family == 'RedHat'"
+      java_packages:
+        - java-1.8.0-openjdk
+    - { role: geerlingguy.jenkins, jenkins_plugins: "{{ plugins }}", become: true }
+  tasks:
+    - name: copying pem file
+      copy:
+        src: /root/.ssh/rags-key.pem
+        dest: /root/.ssh/rags-key.pem
+    - name: installing git
+      yum:
+        name: git
+        state: latest
+    - name: copying credential.xml file
+      copy:
+        src: /root/jenkins/credentials.xml
+        dest: /var/lib/jenkins/credentials.xml
+    - name: creating file for node
+      file:
+        path: /var/lib/jenkins/nodes/maven1
+        state: directory
+    - name: config file to make maven as slave
+      template:
+        src: /root/jenkins/slave-config.j2
+        dest: /var/lib/jenkins/nodes/maven1/config.xml
+    - name: creating node using jenkins-cli
+      shell: sudo java -jar /opt/jenkins-cli.jar -s http://{{ jenkins_ip }}:8080 create-node maven1 --username admin --password admin < /var/lib/jenkins/nodes/maven1/config.xml
+      ignore_errors: yes
+    - name: template for artifact config file
+      template:
+         src: /root/jenkins/artifact-config.j2
+         dest: /var/lib/jenkins/org.jfrog.hudson.ArtifactoryBuilder.xml
+    - name: config file for maven home path
+      copy:
+        src: /root/jenkins/maven-config.xml
+        dest: /var/lib/jenkins/hudson.tasks.Maven.xml
+    - name: creating directory for job
+      file:
+        path: /var/lib/jenkins/jobs/job1
+        state: directory
+#    - name: template for job config file
+#      template: src=/root/jenkins/job-config.j2 dest=/var/lib/jenkins/jobs/job1/config.xml
+#    - name: creating job using jenkins-cli
+#      shell: sudo java -jar /opt/jenkins-cli.jar -s http://{{ jenkins_ip }}:8080 create-job job1 --username admin --password admin < /var/lib/jenkins/jobs/job1/config.xml
+
+

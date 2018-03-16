@@ -1,0 +1,21 @@
+{% for hosts in groups [ 'jenkins' ] %}
+<?xml version='1.1' encoding='UTF-8'?>
+<slave>
+  <name>maven</name>
+  <description>this is used to build my project</description>
+  <remoteFS>/var/lib/jenkins</remoteFS>
+  <numExecutors>1</numExecutors>
+  <mode>NORMAL</mode>
+  <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
+  <launcher class="hudson.plugins.sshslaves.SSHLauncher" plugin="ssh-slaves@1.26">
+    <host>{{ maven_ip }}</host>
+    <port>22</port>
+    <credentialsId>jenkins</credentialsId>
+    <maxNumRetries>0</maxNumRetries>
+    <retryWaitTime>0</retryWaitTime>
+    <sshHostKeyVerificationStrategy class="hudson.plugins.sshslaves.verifiers.NonVerifyingKeyVerificationStrategy"/>
+  </launcher>
+  <label>slave1</label>
+  <nodeProperties/>
+</slave>
+{% endfor %}

@@ -1,0 +1,23 @@
+---
+- hosts: tomcat
+  remote_user: ec2-user
+  become: yes
+  become_user: root
+  roles:
+    - role: geerlingguy.java
+      when: "ansible_os_family == 'RedHat'"
+      java_packages:
+        - java-1.8.0-openjdk
+    - role: devops.tomcat7
+  tasks:
+    - name: download url
+      get_url:
+        url: https://bintray.com/jfrog/artifactory-rpms/rpm
+        dest: /etc/yum.repos.d/
+    - name: yum install
+      yum:
+        name: jfrog-artifactory-oss
+        state: present
+    - name: systemctl command
+      systemd: name=artifactory state=started
+   
